@@ -1,0 +1,50 @@
+[
+  {
+    "id": 0,
+    "icon": "../assets/img/thinking.png",
+    "emotion": "Bạn đang nghĩ gì?",
+    "color_rgba": "rgba(247, 255, 96, 0.07)"
+  },
+  {
+    "id": 1,
+    "icon": "../assets/img/console.png",
+    "emotion": "Tìm bạn chơi game cùng",
+    "color_rgba": "rgba(131, 13, 255, 0.07)"
+  },
+  {
+    "id": 2,
+    "icon": "../assets/img/sport.png",
+    "emotion": "Môn nào cũng chơi",
+    "color_rgba": "rgba(6, 129, 247, 0.07)"
+  },
+  {
+    "id": 3,
+    "icon": "../assets/img/tinder.png",
+    "emotion": "Muốn hẹn hò",
+    "color_rgba": "rgba(247, 6, 6, 0.07)"
+  },
+  {
+    "id": 4,
+    "icon": "../assets/img/wechat.png",
+    "emotion": "Muốn nhắn tin",
+    "color_rgba": "rgba(21, 201, 60, 0.09)"
+  },
+  {
+    "id": 5,
+    "icon": "../assets/img/food.png",
+    "emotion": "Ăn cả thế giới",
+    "color_rgba": "rgba(252, 251, 116, 0.07)"
+  },
+  {
+    "id":6,
+    "icon": "../assets/img/gym.png",
+    "emotion": "Rèn luyện sức khỏe",
+    "color_rgba": "rgba(4, 32, 246, 0.07)"
+  },
+  {
+    "id": 7,
+    "icon": "../assets/img/cinema.png",
+    "emotion": "Thích đi coi phim",
+    "color_rgba": "rgba(200, 22, 244, 0.07)"
+  }
+]

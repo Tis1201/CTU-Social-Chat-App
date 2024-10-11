@@ -1,0 +1,119 @@
+[
+    {
+        "id": "1",
+        "username": "alice_wonder",
+        "age": 25,
+        "avt_img": "https://randomuser.me/api/portraits/women/44.jpg",
+        "gender": "female",
+        "emotion": "🧡",
+        "behavior": 4
+    },
+    {
+        "id": "2",
+        "username": "bob_builder",
+        "age": 30,
+        "avt_img": "https://randomuser.me/api/portraits/men/32.jpg",
+        "gender": "male",
+        "emotion": "neutral",
+        "behavior": 7
+    },
+    {
+        "id": "3",
+        "username": "charlie_brown",
+        "age": 22,
+        "avt_img": "https://randomuser.me/api/portraits/men/10.jpg",
+        "gender": "male",
+        "emotion": "sad",
+        "behavior": 2
+    },
+    {
+        "id": "4",
+        "username": "diana_prince",
+        "age": 28,
+        "avt_img": "https://randomuser.me/api/portraits/women/18.jpg",
+        "gender": "female",
+        "emotion": "happy",
+        "behavior": 5
+    },
+    {
+        "id": "5",
+        "username": "edward_snow",
+        "age": 35,
+        "avt_img": "https://randomuser.me/api/portraits/men/45.jpg",
+        "gender": "male",
+        "emotion": "angry",
+        "behavior": 3
+    },
+    {
+        "id": "6",
+        "username": "fiona_green",
+        "age": 27,
+        "avt_img": "https://randomuser.me/api/portraits/women/22.jpg",
+        "gender": "female",
+        "emotion": "neutral",
+        "behavior": 6
+    },
+    {
+        "id": "7",
+        "username": "george_cloak",
+        "age": 29,
+        "avt_img": "https://randomuser.me/api/portraits/men/35.jpg",
+        "gender": "male",
+        "emotion": "happy",
+        "behavior": 1
+    },
+    {
+        "id": "8",
+        "username": "hannah_breeze",
+        "age": 24,
+        "avt_img": "https://randomuser.me/api/portraits/women/33.jpg",
+        "gender": "female",
+        "emotion": "sad",
+        "behavior": 7
+    },
+    {
+        "id": "9",
+        "username": "ian_stone",
+        "age": 31,
+        "avt_img": "https://randomuser.me/api/portraits/men/48.jpg",
+        "gender": "male",
+        "emotion": "neutral",
+        "behavior": 4
+    },
+    {
+        "id": "10",
+        "username": "julie_sky",
+        "age": 26,
+        "avt_img": "https://randomuser.me/api/portraits/women/25.jpg",
+        "gender": "female",
+        "emotion": "angry",
+        "behavior": 2
+    },
+    {
+        "id": "11",
+        "username": "kevin_blade",
+        "age": 33,
+        "avt_img": "https://randomuser.me/api/portraits/men/55.jpg",
+        "gender": "male",
+        "emotion": "happy",
+        "behavior": 6
+    },
+    {
+        "id": "12",
+        "username": "laura_storm",
+        "age": 28,
+        "avt_img": "https://randomuser.me/api/portraits/women/12.jpg",
+        "gender": "female",
+        "emotion": "neutral",
+        "behavior": 3
+    },
+    {
+        "id": "13",
+        "username": "michael_wave",
+        "age": 34,
+        "avt_img": "https://randomuser.me/api/portraits/men/60.jpg",
+        "gender": "male",
+        "emotion": "sad",
+        "behavior": 5
+    }
+]

@@ -8,7 +8,13 @@ import {
   Dimensions,
 } from "react-native";
 import ListUserShowChat from "../../components/ListUserShowChat";
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -18,13 +24,24 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { RootState } from "../../../redux/store";
 import { useSelector } from "react-redux";
 import { Image } from "expo-image";
-import { getBehaviorFromToken } from "../utils/secureStore";
+import {
+  getAvatarUrlFromToken,
+  getBehaviorFromToken,
+  getUserIdFromToken,
+  getUserNameFromToken,
+} from "../utils/secureStore";
+import { useGenerateToken } from "../../hooks/stream_chat/generateToken";
+import { StreamChat, Channel as ChannelType } from "stream-chat";
+import { localhost } from "../constants/localhost";
+const API_KEY = "bde7bhtputfm";
+const client = StreamChat.getInstance(API_KEY);
 
 const Home = () => {
   const windowWidth = Dimensions.get("window").width;
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["48%"], []);
-
+  const { data: generateToken, isLoading: isGeneratingToken } =
+    useGenerateToken();
   const selectedId = useSelector((state: RootState) => state.user.selectedId);
   const [selected, setSelected] = useState<"nam" | "nữ" | "cả hai">("cả hai");
   const [genderFilter, setGenderFilter] = useState<"nam" | "nữ" | "cả hai">(
@@ -78,6 +95,64 @@ const Home = () => {
     ),
     [selected, handleSelect]
   );
+
+  // Kiểm tra giá trị của generateToken
+  useEffect(() => {
+    console.log("Generate Token:", generateToken);
+  }, [generateToken]);
+
+  const connectUser = async () => {
+    // Kiểm tra nếu token chưa sẵn sàng
+    if (!generateToken) {
+      console.error("Token chưa được tạo.");
+      return;
+    }
+
+    // Kiểm tra nếu người dùng đã kết nối
+    if (client.userID) {
+      console.log("Đang kết nối hoặc đã kết nối, vui lòng chờ...");
+      return;
+    }
+
+    try {
+      const fullName = await getUserNameFromToken();
+      const userId = await getUserIdFromToken();
+      const avatar = await getAvatarUrlFromToken();
+      const avatarBaseUrl = localhost;
+      const avatarUrl =
+        avatar && avatar.startsWith("http")
+          ? avatar
+          : avatar && !avatar.startsWith("ph://")
+            ? `${avatarBaseUrl}/${avatar.replace(/\\/g, "/")}`
+            : "https://th.bing.com/th/id/OIP.pdgwLL8oxjSs9n4AV66x5wHaHa?rs=1&pid=ImgDetMain"; // Đặt một URL mặc định nếu không có hình ảnh
+    
+      if (!fullName || !userId) {
+        console.error("Full Name hoặc User ID không có.");
+        return;
+      }
+
+      // Kết nối với StreamChat
+      await client.connectUser(
+        {
+          id: userId,
+          name: fullName,
+          image: avatarUrl,
+        },
+        generateToken.token // Dùng giá trị token trả về
+      );
+
+      console.log("User đã kết nối thành công");
+    } catch (error) {
+      console.error("Lỗi khi kết nối người dùng: ", error);
+    } finally {
+    }
+  };
+
+  useEffect(() => {
+    if (generateToken && !isGeneratingToken) {
+      connectUser();
+    }
+  }, [generateToken, isGeneratingToken]);
 
   return (
     <GestureHandlerRootView style={styles.container}>

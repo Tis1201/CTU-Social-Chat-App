@@ -42,6 +42,10 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Custom directories to ignore
+uploads/
+avt/
+background/
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 

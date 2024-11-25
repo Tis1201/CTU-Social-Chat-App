@@ -5,12 +5,17 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   Platform,
+  Alert,
+  Pressable,
+  ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { getToken, getUserIdFromToken, logout } from "../app/utils/secureStore";
 import { Image } from "expo-image";
 import { localhost } from "../app/constants/localhost";
-
+import { Link, useRouter } from "expo-router";
+import * as Updates from "expo-updates";
+import { useFollow } from "../hooks/follow/fetchFollow";
 interface User {
   id: string; // Change from id to _id
   full_name: string;
@@ -19,16 +24,28 @@ interface User {
   avatar_url: string;
   behavior: number;
 }
+interface Count {
+  followers: number;
+  following: number;
+}
+interface UserDetail {
+  user: User;
+  count: Count;
+}
 
 const DetailProfile = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserDetail | null>(null);
+  const [uid, setUid] = useState<string | null>(null);
+
   useEffect(() => {
     fetchUser();
   }, []);
 
+  const router = useRouter();
   const fetchUser = async () => {
     const token = await getToken();
     const uid = await getUserIdFromToken();
+    setUid(uid);
     if (!token) {
       throw new Error("No token available");
     }
@@ -65,6 +82,27 @@ const DetailProfile = () => {
     // Nếu số nhỏ hơn 1000 thì trả về số gốc
     return number.toString();
   };
+  const handleLogout = async () => {
+    try {
+      await logout();
+      await Updates.reloadAsync();
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
+  const showLogoutAlert = () => {
+    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
+      {
+        text: "Hủy",
+        style: "cancel",
+      },
+      {
+        text: "Đồng ý",
+        onPress: handleLogout,
+      },
+    ]);
+  };
 
   const widthScreen = useWindowDimensions().width;
   return (
@@ -73,9 +111,10 @@ const DetailProfile = () => {
         style={{
           paddingTop: 55,
           paddingLeft: 25,
-          flexDirection: "row",
-          alignItems: "center",
+          // flexDirection: "row",
+          // alignItems: "center",
           justifyContent: "flex-start",
+          gap: 20,
         }}
       >
         <Text
@@ -85,31 +124,37 @@ const DetailProfile = () => {
             paddingBottom: 7,
           }}
         >
-          {user?.full_name}
+          {user?.user?.full_name}
         </Text>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
+            justifyContent: "center",
             gap: 15,
-            marginLeft: Platform.OS === "ios" ? 10 : 40,
+            // marginLeft: Platform.OS === "ios" ? 10 : 40,
+            paddingBottom: 10,
           }}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <Image
-              source={require("../../assets/img/log-out.png")}
-              style={{ width: 15, height: 15 }}
-              contentFit="contain"
-              cachePolicy="memory-disk"
-            />
-            <Text>{formatNumber(200)}</Text>
-          </View>
+          <Link href={"/asset/FollowerPage"} asChild>
+            <Pressable>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <Image
+                  source={require("../../assets/img/log-out.png")}
+                  style={{ width: 15, height: 15 }}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                />
+                <Text>{formatNumber(user?.count?.followers || 0)}</Text>
+              </View>
+            </Pressable>
+          </Link>
           <View
             style={{
               width: 1,
@@ -118,21 +163,25 @@ const DetailProfile = () => {
               // marginHorizontal: 10,
             }}
           />
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <Image
-              source={require("../../assets/img/log-in.png")}
-              style={{ width: 15, height: 15 }}
-              contentFit="contain"
-              cachePolicy="memory-disk"
-            />
-            <Text>{formatNumber(1234)}</Text>
-          </View>
+          <Link href={"/asset/FollowingPage"} asChild>
+            <Pressable>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <Image
+                  source={require("../../assets/img/log-in.png")}
+                  style={{ width: 15, height: 15 }}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                />
+                <Text>{formatNumber(user?.count?.following || 0)}</Text>
+              </View>
+            </Pressable>
+          </Link>
         </View>
       </View>
 
@@ -168,14 +217,18 @@ const DetailProfile = () => {
             contentFit="contain"
             cachePolicy="memory-disk"
           />
-          <Text
-            style={{
-              fontWeight: "bold",
-              fontSize: 13,
-            }}
-          >
-            Chỉnh sửa thông tin cá nhân
-          </Text>
+          <Link href={"/asset/updateProfile"} asChild>
+            <Pressable>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: 13,
+                }}
+              >
+                Chỉnh sửa thông tin cá nhân
+              </Text>
+            </Pressable>
+          </Link>
         </View>
         <TouchableOpacity
           style={{
@@ -186,20 +239,13 @@ const DetailProfile = () => {
             justifyContent: "center",
             borderRadius: 10,
           }}
-          onPress={async () => {
-            try {
-              await logout();
-              // Add navigation to login screen or any other necessary action after logout
-            } catch (error) {
-              console.error("Error logging out:", error);
-            }
-          }}
+          onPress={showLogoutAlert}
         >
           <Image
-            source={require("../../assets/img/option.png")}
+            source={require("../../assets/img/logout3.png")}
             style={{
-              width: 25,
-              height: 25,
+              width: 20,
+              height: 20,
             }}
             contentFit="contain"
             cachePolicy="memory-disk"
@@ -222,4 +268,10 @@ const DetailProfile = () => {
 
 export default DetailProfile;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

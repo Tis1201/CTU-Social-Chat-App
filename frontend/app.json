@@ -5,28 +5,44 @@
     "scheme": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "platforms": ["ios", "android"],
+    "assetBundlePatterns": ["**/*"],
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow frontend to access your photos.",
+        "NSCameraUsageDescription": "Allow frontend to access your camera.",
+        "NSMicrophoneUsageDescription": "Allow frontend to use the microphone."
+      },
       "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow ${frontend} to access your photos.",
+          "savePhotosPermission": "Allow ${frontend} to save photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow ${frontend} to access your camera."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow ${frontend} to use the microphone."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "49e65299-098a-4607-a745-490de1828ed0"
+      }
+    }
   }
 }

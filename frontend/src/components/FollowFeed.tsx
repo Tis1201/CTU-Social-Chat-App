@@ -1,29 +1,119 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { FlashList } from '@shopify/flash-list';
-import Post from './Post'; 
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { FlashList } from "@shopify/flash-list";
+import Post from "./Post";
+import { useFollowingPosts } from "../hooks/post/fecthFollowingPost";
+
+interface Post {
+  _id: string;
+  content: string;
+  media?: { type: string; url: string; _id: string }[];
+  user_id: string;
+  created_at: string;
+  name: string;
+  avatar_url: string;
+  is_online: boolean;
+  last_online: string;
+}
 
 const FollowFeed = () => {
-  const { width: windowWidth } = useWindowDimensions();
-  const [data, setData] = useState([1, 2, 3, 4, 5, 6]);
-  const [visibleItems, setVisibleItems] = useState(2); // Số lượng item hiển thị ban đầu
+  const [state, setState] = useState({
+    currentPage: 1,
+    allPosts: new Map<string, Post>(),
+    hasMore: true,
+    isLoadingMore: false,
+  });
 
-  // Hàm gọi khi cuộn đến gần cuối danh sách
-  const handleEndReached = () => {
-    setVisibleItems(prev => Math.min(prev + 2, data.length)); // Tăng số lượng item hiển thị lên 2
-  };
+  const { data: newPostsFollowing, isLoading, error, refetch } = useFollowingPosts(state.currentPage);
+
+  // Hàm tải lại toàn bộ bài viết
+  const reloadPage = useCallback(async () => {
+    setState({
+      currentPage: 1,
+      allPosts: new Map(),
+      hasMore: true,
+      isLoadingMore: false,
+    });
+    await refetch();
+  }, [refetch]);
+
+  // Cập nhật bài viết khi có dữ liệu mới
+  useEffect(() => {
+    if (newPostsFollowing?.posts) {
+      setState((prevState) => {
+        const updatedPosts = new Map(prevState.allPosts);
+        newPostsFollowing.posts.forEach((post: Post) => updatedPosts.set(post._id, post));
+        return {
+          ...prevState,
+          allPosts: updatedPosts,
+          hasMore: newPostsFollowing.posts.length >= 5,
+        };
+      });
+    }
+  }, [newPostsFollowing]);
+
+  // Tải thêm bài viết khi chạm đáy
+  const handleEndReached = useCallback(() => {
+    if (state.hasMore && !state.isLoadingMore) {
+      setState((prevState) => ({
+        ...prevState,
+        isLoadingMore: true,
+        currentPage: prevState.currentPage + 1,
+      }));
+    }
+  }, [state.hasMore, state.isLoadingMore]);
+
+  // Tải bài viết khi trang thay đổi
+  useEffect(() => {
+    if (state.currentPage > 1) {
+      refetch().finally(() =>
+        setState((prevState) => ({ ...prevState, isLoadingMore: false }))
+      );
+    }
+  }, [state.currentPage, refetch]);
+
+  const postArray = useMemo(() => Array.from(state.allPosts.values()), [state.allPosts]);
+
+  if (isLoading && state.currentPage === 1) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Error: {error.message}</Text>
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <FlashList
-        data={data.slice(0, visibleItems)} // Chỉ hiển thị số lượng item hiện tại
-        renderItem={({ item }) => <Post />} // Thay thế bằng component Post của bạn
-        keyExtractor={(item) => item.toString()} // Tạo key cho mỗi item
+        data={postArray}
+        renderItem={({ item }) => (
+          <Post
+            post={item}
+            onHidePost={(postId: string) =>
+              setState((prev) => {
+                const updatedPosts = new Map(prev.allPosts);
+                updatedPosts.delete(postId);
+                return { ...prev, allPosts: updatedPosts };
+              })
+            }
+          />
+        )}
+        keyExtractor={(item) => item._id}
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={200}
-        onEndReached={handleEndReached} // Gọi khi cuộn đến gần cuối
-        onEndReachedThreshold={0.3} // Gọi khi người dùng cuộn đến 50% của chiều cao danh sách
+        estimatedItemSize={317}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        refreshing={isLoading}
+        onRefresh={reloadPage}
       />
     </GestureHandlerRootView>
   );
@@ -32,6 +122,11 @@ const FollowFeed = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

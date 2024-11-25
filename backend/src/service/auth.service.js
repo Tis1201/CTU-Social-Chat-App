@@ -1,33 +1,46 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../model/user.model"); 
+const User = require("../model/user.model");
 
 const authServices = {
   async registerUser(userData) {
+    console.log("userData:", userData);
     const { email, username } = userData;
 
+    // Kiểm tra xem email hoặc username đã tồn tại chưa
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       throw new Error("Email or username already exists");
     }
 
+    // Tạo người dùng mới
     const newUser = new User({
       ...userData,
       refreshToken: null,
       refreshTokenExpires: null,
     });
 
+    // Tạo accessToken và refreshToken
     const accessToken = jwt.sign(
-      { id: newUser._id },
+      {
+        id: newUser._id,
+        behavior: newUser.behavior,
+        full_name: newUser.full_name,
+      },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1m" }
+      { expiresIn: "60m" }
     );
     const refreshToken = jwt.sign(
-      { id: newUser._id },
+      {
+        id: newUser._id,
+        behavior: newUser.behavior,
+        full_name: newUser.full_name,
+      },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
 
+    // Lưu refreshToken vào user
     newUser.refreshToken = refreshToken;
     newUser.refreshTokenExpires = new Date(
       Date.now() + 7 * 24 * 60 * 60 * 1000
@@ -35,6 +48,7 @@ const authServices = {
 
     await newUser.save();
 
+    // Trả về thông tin user, accessToken và refreshToken
     return { user: newUser, accessToken, refreshToken };
   },
 
@@ -66,14 +80,23 @@ const authServices = {
     if (!isMatch) {
       throw new Error("Email or password is incorrect");
     }
-
     const accessToken = jwt.sign(
-      { id: user._id, avatar_url: user.avatar_url, behavior: user.behavior },
+      {
+        id: user._id,
+        avatar_url: user.avatar_url,
+        behavior: user.behavior,
+        full_name: user.full_name,
+      },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1m" }
+      { expiresIn: "60m" }
     );
     const refreshToken = jwt.sign(
-      { id: user._id, avatar_url: user.avatar_url, behavior: user.behavior },
+      {
+        id: user._id,
+        avatar_url: user.avatar_url,
+        behavior: user.behavior,
+        full_name: user.full_name,
+      },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
@@ -88,7 +111,6 @@ const authServices = {
   verifyToken(token, secretKey) {
     return jwt.verify(token, secretKey);
   },
-
 
   async refreshToken(refreshToken) {
     if (!refreshToken) {
@@ -105,10 +127,15 @@ const authServices = {
     const newAccessToken = jwt.sign(
       { id: user._id },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1m" }
+      { expiresIn: "60m" }
     );
 
     return { accessToken: newAccessToken };
+  },
+
+  async getAccessToken(userId) {
+    const user = await User.findById(userId);
+    return user.accessToken;
   },
 };
 

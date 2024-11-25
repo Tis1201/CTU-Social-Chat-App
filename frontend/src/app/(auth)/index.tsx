@@ -1,96 +1,135 @@
-import { StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { Image } from 'expo-image'
-import { useRouter } from 'expo-router'
-import {  deleteToken, getBehaviorFromToken, getToken } from '../utils/secureStore'
-import { useDispatch } from 'react-redux'
-import { setSelectedId } from '../../../redux/userSlice'
-import store from '../../../redux/store'
-import { localhost } from '../constants/localhost'
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Platform,
+  Dimensions,
+} from "react-native";
+import React, { useEffect, useState } from "react";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import {
+  deleteToken,
+  getBehaviorFromToken,
+  getToken,
+} from "../utils/secureStore";
+import { useDispatch } from "react-redux";
+import { setSelectedId } from "../../../redux/userSlice";
+import store from "../../../redux/store";
+import { localhost } from "../constants/localhost";
 
 const Welcome = () => {
-  const router = useRouter()
+  const router = useRouter();
   const dispatch = useDispatch();
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { width, height } = Dimensions.get("window");
   useEffect(() => {
     const checkToken = async () => {
-      const token = await getToken()
-      
+      const token = await getToken();
+
       if (token) {
         const response = await fetch(`${localhost}/users/check-refresh-token`, {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, br'
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "Accept-Encoding": "gzip, deflate, br",
           },
         });
         const data = await response.json();
         if (data) {
-          setIsLoggedIn(true)
-          const behavior =  await getBehaviorFromToken();
-          dispatch(setSelectedId(behavior)); 
-          router.replace('/(tabs)')
+          setIsLoggedIn(true);
+          const behavior = await getBehaviorFromToken();
+          dispatch(setSelectedId(behavior));
+          router.replace("/(tabs)");
         } else {
-          console.log('Session has expired');
+          console.log("Session has expired");
           setIsLoggedIn(false);
           deleteToken();
         }
       }
-    }
-    checkToken()
-  }, [isLoggedIn])
+    };
+    checkToken();
+  }, [isLoggedIn]);
 
   const handleStart = () => {
-    router.push('/login')
-  }
+    router.push("/login");
+  };
 
   return (
-      <View style={styles.container}>
-        <Image 
-          source={require('../../../assets/img/logo-home-blue.jpg')} 
-          style={{ width: '70%', height: '80%', position: 'relative' }}
-          contentFit='contain'
+    <View style={styles.container}>
+      <View
+        style={{
+          width: "80%",
+          height: 150,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Image
+          source={require("../../../assets/img/logo-home-blue.jpg")}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="contain"
         />
-        <Text style={{
-          position: 'absolute',
-          top: Platform.OS === 'ios' ? 355 : 385,
-          fontSize: Platform.OS === 'ios' ? 11 : 13,
-          fontWeight: 'light',
-          color: 'gray'
-        }}>Chào mừng bạn đến với mạng xã hội CTU</Text>
-        {!isLoggedIn && (
-          <TouchableOpacity style={{
-            position: 'absolute',
-            top: 440,
+        <View
+          style={{
+            position: "absolute",
+            bottom: 30,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: Platform.OS === "ios" ? 11 : 13,
+              fontWeight: "light",
+              color: "gray",
+              textAlign: "center",
+            }}
+          >
+            Chào mừng bạn đến với mạng xã hội CTU
+          </Text>
+        </View>
+      </View>
+      {!isLoggedIn && (
+        <TouchableOpacity
+          style={{
+            // position: "absolute",
+            // top:
+            //   Platform.OS === "ios"
+            //     ? (height * 1) / 2 - 25
+            //     : (height * 1) / 2 - 25,
             height: 60,
             width: 200,
-            backgroundColor: '#2980b8',
+            backgroundColor: "#2980b8",
             padding: 10,
             borderRadius: 30,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }} onPress={handleStart}>
-            <Text style={{
-              color: '#fff',
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          onPress={handleStart}
+        >
+          <Text
+            style={{
+              color: "#fff",
               fontSize: 17,
-              fontWeight: 'light',
-            }}>Bắt đầu ngay</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+              fontWeight: "light",
+            }}
+          >
+            Bắt đầu ngay
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
-  )
-}
-
-export default Welcome
+export default Welcome;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  }
-})
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+});

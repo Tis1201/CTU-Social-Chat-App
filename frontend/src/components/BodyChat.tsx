@@ -15,6 +15,6 @@ const BodyChat = () => {
   );
 };
 
-export default BodyChat;
+export default BodyChat; 
 
 const styles = StyleSheet.create({});

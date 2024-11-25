@@ -1,35 +1,97 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, useWindowDimensions,Text } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { FlashList } from '@shopify/flash-list';
-import Post from './Post'; 
-import { usePosts } from '../hooks/fetchPost'; // Import hook to fetch posts
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { FlashList } from "@shopify/flash-list";
+import Post from "./Post";
+import { usePosts } from "../hooks/post/fetchPost";
+
+interface Post {
+  _id: string;
+  content: string;
+  media?: { type: string; url: string; _id: string }[];
+  user_id: string;
+  created_at: string;
+  name: string;
+  avatar_url: string;
+  is_online: boolean;
+  last_online: string;
+}
 
 const SuggestFeed = () => {
-  const { width: windowWidth } = useWindowDimensions();
-  const [visibleItems, setVisibleItems] = useState(2); // Số lượng item hiển thị ban đầu
-  const { data: posts, isLoading, error, refetch } = usePosts(); // Use hook to fetch posts
+  const [state, setState] = useState({
+    currentPage: 1,
+    allPosts: new Map<string, Post>(),
+    hasMore: true,
+    isLoadingMore: false,
+  });
 
-  // Hàm gọi khi cuộn đến gần cuối danh sách
-  const handleEndReached = () => {
-    setVisibleItems(prev => Math.min(prev + 2, posts.posts.length)); // Tăng số lượng item hiển thị lên 2
-  };
+  const {
+    data: newPosts,
+    isLoading,
+    error,
+    refetch,
+  } = usePosts(state.currentPage);
+
+  const reloadPage = useCallback(async () => {
+    setState({
+      currentPage: 1,
+      allPosts: new Map(),
+      hasMore: true,
+      isLoadingMore: false,
+    });
+    await refetch();
+  }, [refetch]);
 
   useEffect(() => {
-    refetch();
-  }, []);
+    if (newPosts?.posts) {
+      setState((prev) => {
+        const updatedPosts = new Map(prev.allPosts);
+        newPosts.posts.forEach((post: Post) =>
+          updatedPosts.set(post._id, post)
+        );
+        return {
+          ...prev,
+          allPosts: updatedPosts,
+          hasMore: newPosts.posts.length >= 5,
+        };
+      });
+    }
+  }, [newPosts]);
+
+  const handleEndReached = useCallback(() => {
+    if (state.hasMore && !state.isLoadingMore) {
+      setState((prev) => ({
+        ...prev,
+        isLoadingMore: true,
+        currentPage: prev.currentPage + 1,
+      }));
+    }
+  }, [state.hasMore, state.isLoadingMore]);
+
+  useEffect(() => {
+    if (state.currentPage > 1) {
+      refetch().finally(() =>
+        setState((prev) => ({ ...prev, isLoadingMore: false }))
+      );
+    }
+  }, [state.currentPage, refetch]);
+
+  const postArray = useMemo(
+    () => Array.from(state.allPosts.values()),
+    [state.allPosts]
+  );
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={styles.loadingContainer}>
         <Text>Error: {error.message}</Text>
       </View>
     );
@@ -38,13 +100,26 @@ const SuggestFeed = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
       <FlashList
-        data={posts?.posts || []} 
-        renderItem={({ item }: { item: any }) => <Post post={item} />} 
-        keyExtractor={(item: any) => item._id ? item._id.toString() : Math.random().toString()} 
+        data={postArray}
+        renderItem={({ item }) => (
+          <Post
+            post={item}
+            onHidePost={(postId: string) =>
+              setState((prev) => {
+                const updatedPosts = new Map(prev.allPosts);
+                updatedPosts.delete(postId);
+                return { ...prev, allPosts: updatedPosts };
+              })
+            }
+          />
+        )}
+        keyExtractor={(item) => item._id}
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={200}
-        onEndReached={handleEndReached} 
-        onEndReachedThreshold={0.3} 
+        estimatedItemSize={317}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        refreshing={isLoading}
+        onRefresh={reloadPage}
       />
     </GestureHandlerRootView>
   );
@@ -53,6 +128,11 @@ const SuggestFeed = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

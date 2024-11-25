@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchCountLike } from '../src/hooks/fetchCountLike';
-import { fetchCheckUserLike } from '../src/hooks/fetchCheckUserLike';
+import { fetchCountLike } from '../src/hooks/post/fetchCountLike';
+import { fetchCheckUserLike } from '../src/hooks/post/fetchCheckUserLike';
 
 
 interface LikesState {

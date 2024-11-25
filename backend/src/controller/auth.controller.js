@@ -67,6 +67,7 @@ const authController = {
       res.status(500).json({ msg: error.message });
     }
   },
+
 };
 
 module.exports = authController;

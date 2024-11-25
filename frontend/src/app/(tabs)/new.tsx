@@ -11,15 +11,19 @@ import React, { useState } from "react";
 import SuggestFeed from "../../components/SuggestFeed";
 import NewestFeed from "../../components/NewestFeed";
 import FollowFeed from "../../components/FollowFeed";
-import Notification from "../../components/Notification";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
+import PostFeed from "../../components/PostFeed";
 const NewFeed = () => {
   // State để lưu tab hiện tại
   const [selectedTab, setSelectedTab] = useState("Gợi ý");
   const router = useRouter();
   const handlePress = () => {
     router.push("/(stacks)/NotifyScreen"); // Use router.push to navigate
+  };
+
+  const handlePostFeed = () => {
+    router.push("/(stacks)/PostScreen");
   };
   const renderContent = () => {
     switch (selectedTab) {
@@ -87,18 +91,19 @@ const NewFeed = () => {
 
       {/* Render nội dung dựa trên tab đã chọn */}
       {renderContent()}
-
-      <Image
-        source={require("../../../assets/img/plus1.png")}
-        style={{
-          width: 50,
-          height: 50,
-          borderRadius: 100,
-          right: 20,
-          position: "absolute",
-          bottom: Platform.OS === "android" ? 370 : 300,
-        }}
-      />
+      <Pressable onPress={handlePostFeed}>
+        <Image
+          source={require("../../../assets/img/plus1.png")}
+          style={{
+            width: 50,
+            height: 50,
+            borderRadius: 100,
+            right: 20,
+            position: "absolute",
+            bottom: Platform.OS === "android" ? 370 : 300,
+          }}
+        />
+      </Pressable>
     </SafeAreaView>
   );
 };

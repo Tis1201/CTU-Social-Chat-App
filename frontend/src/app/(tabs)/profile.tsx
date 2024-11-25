@@ -7,7 +7,13 @@ import {
   TouchableOpacity,
   FlatList,
 } from "react-native";
-import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
 import ProfileAvtBg from "../../components/ProfileAvtBg";
 import DetailProfile from "../../components/DetailProfile";
 import emotions from "../../../assets/emotion/emotion.json";
@@ -26,9 +32,11 @@ import { Image } from "expo-image";
 import {
   getBehaviorFromToken,
   getToken,
+  getUserIdFromToken,
 } from "../utils/secureStore";
 import { localhost } from "../constants/localhost";
-import { useUserPosts } from "../../hooks/fetchUserPost"; // Import the hook
+import { useUserPosts } from "../../hooks/post/fetchUserPost"; // Import the hook
+import { useFocusEffect } from "@react-navigation/native";
 
 const imageMapping: { [key: string]: ImageSourcePropType } = {
   "../assets/img/console.png": require("../../../assets/img/console.png"),
@@ -50,16 +58,12 @@ const Profile = () => {
   const bottomSheetModalRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["25%", "50%"], []);
   const { data: userPosts } = useUserPosts(); // Use hook to fetch posts
-
   const dispatch = useDispatch();
-
-
-
+  const [refreshing, setRefreshing] = useState(false);
   function handlePresentModal() {
     setIsBottomSheetVisible(true);
     bottomSheetModalRef.current?.expand();
   }
-
   const handleDismiss = () => {
     bottomSheetModalRef.current?.close();
     setTimeout(() => {
@@ -87,32 +91,36 @@ const Profile = () => {
     ),
     []
   );
-  React.useEffect(() => {
-    const fetchBehavior = async () => {
-      const behavior = await getBehaviorFromToken();
-      // console.log('Behavior:', typeof(behavior));
-      if (typeof behavior === "number") {
-        setthinking(behavior);
-        dispatch(setSelectedId(behavior));
-      } else {
-        console.error("Invalid behavior value:", behavior);
-      }
-    };
-    fetchBehavior();
-  }, [Profile]);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchBehavior = async () => {
+        const behavior = await getBehaviorFromToken();
+        if (typeof behavior === "number") {
+          setthinking(behavior);
+          dispatch(setSelectedId(behavior));
+        } else {
+          console.error("Invalid behavior value:", behavior);
+        }
+      };
+      fetchBehavior();
+    }, [Profile])
+  );
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <SafeAreaView
+    <GestureHandlerRootView>
+      <View
         style={{
           flex: 1,
         }}
       >
         <BottomSheetModalProvider>
           <FlashList
-            data={userPosts && userPosts.posts ? userPosts.posts : []} // Use the fetched user posts data
-            renderItem={({ item } : { item: any }) => <PostUserId post={item} />} // Pass the post item to PostUserId component
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item: any) => item._id ? item._id.toString() : Math.random().toString()} // Tạo key cho mỗi item
+            data={userPosts && userPosts.posts ? userPosts.posts : []}
+            renderItem={({ item }: { item: any }) => (
+              <PostUserId post={item} onHidePost={() => {}} />
+            )}
+            keyExtractor={(item: any) =>
+              item._id ? item._id.toString() : Math.random().toString()
+            }
             onEndReachedThreshold={0.3}
             ListHeaderComponent={
               <>
@@ -138,7 +146,7 @@ const Profile = () => {
                     }}
                   >
                     <Image
-                      source={imageMapping[emotion.icon]} // Tải ảnh dựa trên đường dẫn từ JSON
+                      source={imageMapping[emotion.icon]}
                       style={{
                         width: 20,
                         height: 20,
@@ -206,6 +214,7 @@ const Profile = () => {
               </>
             }
             estimatedItemSize={200}
+            showsVerticalScrollIndicator={false}
           />
           {isBottomSheetVisible && (
             <BottomSheet
@@ -230,7 +239,6 @@ const Profile = () => {
                         handlePress(item.id);
                         try {
                           const token = await getToken();
-                          // await setCacheBehavior(item.id);
                           if (!token) {
                             throw new Error("No token available");
                           }
@@ -249,10 +257,8 @@ const Profile = () => {
                           if (!response.ok) {
                             throw new Error("Failed to update behavior");
                           }
-                          // Handle successful update if needed
                         } catch (error) {
                           console.error("Error updating behavior:", error);
-                          // Handle error (e.g., show an alert to the user)
                         }
                       }}
                     >
@@ -276,7 +282,7 @@ const Profile = () => {
                           }}
                         >
                           <Image
-                            source={imageMapping[item.icon]} // Truy cập icon từ đối tượng item
+                            source={imageMapping[item.icon]}
                             style={{
                               width: 30,
                               height: 30,
@@ -304,18 +310,17 @@ const Profile = () => {
                       </View>
                     </TouchableOpacity>
                   )}
-                  keyExtractor={(item) => item.id.toString()} // Tạo key duy nhất cho mỗi item
+                  keyExtractor={(item) => item.id.toString()}
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={{
                     paddingBottom: 10,
                   }}
-                  // estimatedItemSize={200}
                 />
               </View>
             </BottomSheet>
           )}
         </BottomSheetModalProvider>
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 };
@@ -323,11 +328,11 @@ const Profile = () => {
 export default Profile;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "white",
-    paddingTop: Platform.OS === "android" ? 45 : 0,
-  },
+  // container: {
+  //   flex: 1,
+  //   backgroundColor: "white",
+  //   paddingTop: Platform.OS === "android" ? 45 : 0,
+  // },
   img: {
     width: 140,
     height: 140,

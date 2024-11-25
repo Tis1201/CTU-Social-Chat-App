@@ -1,7 +1,9 @@
-// services/userService.js
 const User = require("../model/user.model");
 const path = require("path");
 const fs = require("fs");
+const Paginator = require("./paginator");
+const Post = require("../model/post.model");
+const { ObjectId } = require("mongodb");
 
 const getAllUsers = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -40,7 +42,9 @@ const createUser = async (userData) => {
 };
 
 const getUserById = async (id) => {
-  const user = await User.findById(id).select("-password");
+  const user = await User.findById(id).select(
+    "-password -refreshToken -refreshTokenExpires"
+  );
   if (!user) {
     throw new Error("User not found");
   }
@@ -58,7 +62,7 @@ const updateAvatar = async (userId, avatarFile) => {
     throw new Error("Avatar file size must be less than 5MB");
   }
 
-  const avatarFileName = path.join('avt', avatarFile.filename);
+  const avatarFileName = path.join("avt", avatarFile.filename);
 
   user.avatar_url = avatarFileName;
   await user.save();
@@ -77,8 +81,7 @@ const updateBackground = async (userId, backgroundFile) => {
     throw new Error("Background file size must be less than 10MB");
   }
 
-
-  const backgroundFileName = path.join('background', backgroundFile.filename);
+  const backgroundFileName = path.join("background", backgroundFile.filename);
   user.background_url = backgroundFileName;
   await user.save();
 
@@ -87,7 +90,7 @@ const updateBackground = async (userId, backgroundFile) => {
 
 const fetchUsersExceptCurrent = async (currentUserId, page, limit) => {
   try {
-    const pageNum = parseInt(page, 10) || 1; 
+    const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
 
     // console.log(`PageNum: ${pageNum}, LimitNum: ${limitNum}`); // Log giá trị thực tế
@@ -124,7 +127,10 @@ const fetchUserByGender = async (currentUserId, gender, page, limit) => {
 
     const skip = (pageNum - 1) * limitNum;
     if (gender === "cả hai") {
-      const users = await User.find({ _id: { $ne: currentUserId } })
+      const users = await User.find({
+        _id: { $ne: currentUserId },
+        is_online: true,
+      })
         .select("-password -refreshToken -refreshTokenExpires")
         .skip(skip)
         .limit(limitNum)
@@ -132,6 +138,7 @@ const fetchUserByGender = async (currentUserId, gender, page, limit) => {
 
       const totalUsers = await User.countDocuments({
         _id: { $ne: currentUserId },
+        is_online: true,
       });
       return {
         users,
@@ -143,7 +150,8 @@ const fetchUserByGender = async (currentUserId, gender, page, limit) => {
     } else {
       const users = await User.find({
         gender: gender,
-        _id: { $ne: currentUserId }, // Exclude the current user
+        _id: { $ne: currentUserId }, 
+        is_online: true, 
       })
         .select("-password -refreshToken -refreshTokenExpires")
         .skip(skip)
@@ -152,7 +160,8 @@ const fetchUserByGender = async (currentUserId, gender, page, limit) => {
 
       const totalUsers = await User.countDocuments({
         gender: gender,
-        _id: { $ne: currentUserId }, // Exclude the current user from count
+        _id: { $ne: currentUserId }, 
+        is_online: true, 
       });
 
       return {
@@ -169,19 +178,15 @@ const fetchUserByGender = async (currentUserId, gender, page, limit) => {
   }
 };
 
-const countFollowers = async (userId) => {
+const countFollowersAndFollowing = async (userId) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new Error("User not found");
   }
-  return user.followers.length;
-};
-const countFollowing = async (userId) => {
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user.following.length;
+  return {
+    followers: user.followers.length,
+    following: user.following.length,
+  };
 };
 
 const updateBehavior = async (userId, behavior) => {
@@ -208,7 +213,7 @@ const checkRefreshTokenHasExpired = async (userId) => {
     throw new Error("User not found");
   }
   return Date.now() < user.refreshTokenExpires;
-}
+};
 
 const getUserName = async (userId) => {
   const user = await User.findById(userId);
@@ -216,7 +221,7 @@ const getUserName = async (userId) => {
     throw new Error("User not found");
   }
   return user.username;
-}
+};
 
 const getUserAvatar = async (userId) => {
   const user = await User.findById(userId);
@@ -224,7 +229,217 @@ const getUserAvatar = async (userId) => {
     throw new Error("User not found");
   }
   return user.avatar_url;
-}
+};
+
+const updateUserStatus = async (userId, isOnline) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  user.is_online = isOnline;
+  await user.save();
+  return user;
+};
+
+const updateUserLastOnline = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      console.warn(`User with ID ${userId} not found. Skipping update.`);
+      return null;
+    }
+
+    user.last_online = Date.now();
+    await user.save();
+
+    return user;
+  } catch (error) {
+    console.error(
+      `Error in updateUserLastOnline for userId ${userId}:`,
+      error.message
+    );
+    throw error;
+  }
+};
+
+const getUserStatus = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return user.is_online;
+};
+
+const getUserLastOnline = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return user.last_online;
+};
+
+const checkIsFollowed = async (userId, currentUserId) => {
+  const user = await User.findById(userId);
+  return user.followers.includes(currentUserId);
+};
+
+const unfollowUser = async (userId, currentUserId) => {
+  
+  const currentUser = await User.findById(currentUserId);
+
+  if (!currentUser) {
+    throw new Error("Người dùng hiện tại không tồn tại");
+  }
+
+  currentUser.following = currentUser.following.filter(
+    (id) => id.toString() !== userId
+  );
+  await currentUser.save();
+
+  
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error("Người dùng bị unfollow không tồn tại");
+  }
+
+  user.followers = user.followers.filter(
+    (id) => id.toString() !== currentUserId
+  );
+  await user.save();
+
+  return { currentUser, user };
+};
+
+const addFollower = async (userId, currentUserId) => {
+  const user = await User.findById(userId);
+  const currentUser = await User.findById(currentUserId);
+  user.followers.push(currentUserId);
+  currentUser.following.push(userId);
+  await user.save();
+  await currentUser.save();
+  return user;
+};
+
+const getFollowingPosts = async (userId, page, limit) => {
+  try {
+    const paginator = new Paginator(page, limit);
+
+    
+    const user = await User.findById(userId).populate("following");
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    
+    const followingUsers = user.following.map((user) => user._id);
+
+    
+    const totalRecords = await Post.countDocuments({
+      user_id: { $in: followingUsers },
+      is_hide: { $not: { $elemMatch: { $eq: new ObjectId(userId) } } }, 
+    });
+
+    // Lấy metadata phân trang
+    const metadata = paginator.getMetadata(totalRecords);
+
+    // Tìm bài viết, áp dụng phân trang và loại bỏ bài viết bị ẩn
+    const posts = await Post.find({
+      user_id: { $in: followingUsers },
+      is_hide: { $not: { $elemMatch: { $eq: new ObjectId(userId) } } },
+    })
+      .sort({ created_at: -1 }) // Sắp xếp theo ngày tạo
+      .skip(paginator.offset) // Bỏ qua số bài viết cần thiết để đạt đến trang hiện tại
+      .limit(paginator.limit); // Giới hạn số bài viết trên mỗi trang
+
+    // Lấy thêm thông tin người đăng bài và số lượng likes cho từng bài viết
+    const postsWithUserData = await Promise.all(
+      posts.map(async (post) => {
+        const name = await getUserName(post.user_id);
+        const avatar_url = await getUserAvatar(post.user_id);
+        const is_online = await getUserStatus(post.user_id);
+        const last_online = await getUserLastOnline(post.user_id);
+
+        return {
+          ...post.toObject(), // Chuyển đổi Mongoose document thành object thông thường
+          countLike: post.likes.length,
+          name,
+          avatar_url,
+          is_online,
+          last_online,
+        };
+      })
+    );
+
+    return { posts: postsWithUserData, metadata };
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
+};
+
+const getUserFollowing = async (userId) => {
+  const user = await User.findById(userId)
+    .populate({
+      path: "following",
+      select: "-password -refreshToken -refreshTokenExpires -blocked_users",
+    })
+    .select("-password -refreshToken -refreshTokenExpires -blocked_users");
+  return user.following;
+};
+
+const getUserFollowers = async (userId) => {
+  const user = await User.findById(userId)
+    .populate({
+      path: "followers",
+      select: "-password -refreshToken -refreshTokenExpires -blocked_users",
+    })
+    .select("-password -refreshToken -refreshTokenExpires -blocked_users");
+  return user.followers;
+};
+
+const updateUserInfo = async (userId, userData) => {
+  const user = await User.findByIdAndUpdate(userId, userData, { new: true });
+  return user;
+};
+
+const deleteUser = async (userId) => {
+  const user = await User.findByIdAndDelete(userId);
+  return user;
+};
+
+const searchUser = async (keyword, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit; 
+
+  
+  const users = await User.find({
+    username: { $regex: keyword, $options: "i" },
+  })
+    .skip(skip) 
+    .limit(limit); 
+
+  
+  const totalItems = await User.countDocuments({
+    username: { $regex: keyword, $options: "i" },
+  });
+
+  
+  const totalPages = Math.ceil(totalItems / limit);
+
+  return {
+    users, 
+    totalItems, 
+    totalPages, 
+    currentPage: page, 
+  };
+};
+
+const updateFullnameAndBio = async (userId, fullname, bio) => {
+  const user = await User.findByIdAndUpdate(userId, { fullname, bio }, { new: true });
+  return user;
+};
 
 module.exports = {
   getAllUsers,
@@ -233,12 +448,25 @@ module.exports = {
   updateAvatar,
   updateBackground,
   fetchUsersExceptCurrent,
-  countFollowers,
-  countFollowing,
+  countFollowersAndFollowing,
   fetchUserByGender,
   updateBehavior,
   getBehavior,
   checkRefreshTokenHasExpired,
   getUserName,
   getUserAvatar,
+  updateUserStatus,
+  getUserStatus,
+  getUserLastOnline,
+  updateUserLastOnline,
+  checkIsFollowed,
+  unfollowUser,
+  addFollower,
+  getFollowingPosts,
+  getUserFollowing,
+  getUserFollowers,
+  updateUserInfo,
+  deleteUser,
+  searchUser,
+  updateFullnameAndBio,
 };

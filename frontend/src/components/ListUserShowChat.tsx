@@ -99,6 +99,7 @@ const ListUserShowChat: React.FC<ListUserShowChatProps> = ({
           gender={item.gender}
           emotion={item.bio}
           avt={item.avatar_url}
+          uid={item._id}
         />
       )}
       showsVerticalScrollIndicator={false}

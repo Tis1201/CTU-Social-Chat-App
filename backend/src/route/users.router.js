@@ -3,12 +3,13 @@ const express = require("express");
 const { body } = require("express-validator");
 const userController = require("../controller/user.controller");
 const authController = require("../controller/auth.controller");
-const authMiddleware = require("../middlewares/auth.middleware")
-const avtMiddleware = require("../middlewares/avt.middleware")
+const authMiddleware = require("../middlewares/auth.middleware");
+const avtMiddleware = require("../middlewares/avt.middleware");
 const router = express.Router();
 
-router.get("/", userController.getAllUsers);
 
+router.get("/", userController.getAllUsers);
+router.get("/search", authMiddleware, userController.searchUserController);
 router.get(
   "/except-current",
   authMiddleware,
@@ -16,11 +17,35 @@ router.get(
 );
 
 router.get("/gender", authMiddleware, userController.getUserByGender);
-
+router.get(
+  "/following-posts",
+  authMiddleware,
+  userController.getFollowingPosts
+);
 router.get("/behavior", authMiddleware, userController.getBehavior);
 
+router.get("/following", authMiddleware, userController.getUserFollowing);
+router.get("/followers", authMiddleware, userController.getUserFollowers);
+
+router.patch("/fullname-bio", authMiddleware, userController.updateFullnameAndBio);
+router.get("/behavior/:id", authMiddleware, userController.getBehaviorId);
+router.delete("/:id/follow", authMiddleware, userController.deleteFollower);
+router.get(
+  "/:id/check-followed",
+  authMiddleware,
+  userController.checkIsFollowed
+);
+router.get(
+  "/:id/count",
+  authMiddleware,
+  userController.countFollowersAndFollowing
+);
 router.patch("/behavior", authMiddleware, userController.updateBehavior);
-router.get("/check-refresh-token", authMiddleware, userController.checkRefreshTokenHasExpired);
+router.get(
+  "/check-refresh-token",
+  authMiddleware,
+  userController.checkRefreshTokenHasExpired
+);
 
 router.post(
   "/register",
@@ -57,7 +82,14 @@ router.post(
 
 router.get("/:id", authMiddleware, userController.getUserById);
 
-router.patch("/avt/:id", authMiddleware,avtMiddleware, userController.updateAvatar);
+router.get("/avt/:id", authMiddleware, userController.getUserAvatar);
+
+router.patch(
+  "/avt/:id",
+  authMiddleware,
+  avtMiddleware,
+  userController.updateAvatar
+);
 
 router.patch(
   "/background/:id",
@@ -77,6 +109,13 @@ router.post(
 );
 
 router.post("/refresh-token", authMiddleware, authController.refreshToken);
+
+// follow
+router.post("/:id/follow", authMiddleware, userController.addFollower);
+
+router.put("/:id", authMiddleware, userController.updateUserInfo);
+router.delete("/:id", authMiddleware, userController.deleteUser);
+
 
 
 module.exports = router;
